@@ -1,0 +1,4 @@
+flask
+gunicorn
+fullcalendar
+sqlite3
