@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Execuções RPA GECON</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <style>
+		/* Estilização do título */
+        #header {
+            background: linear-gradient(to right, #003366, #0055aa);
+            color: white;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 15px;
+            font-family: 'Arial', sans-serif;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        /* Ajuste do corpo para não sobrepor o título */
+        body {
+            margin-top: 70px;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Estilização do modal */
+	
+        #eventModal, #editEventModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            width: 300px;
+            text-align: center;
+            z-index: 1000;
+        }
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        .fc-event-title {
+            white-space: normal !important;
+            word-wrap: break-word;
+            font-weight: bold;
+            padding: 2px;
+            text-align: center;
+        }
+        .fc-event {
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: center;
+            color: white !important;
+        }
+    </style>
+</head>
+<body>
+	<!-- Título fixo no topo -->
+    <div id="header">
+        Painel de Execuções RPA GECON
+    </div>
+    <div id="overlay"></div>
+
+    <!-- Modal de Criar Evento -->
+    <div id="eventModal">
+        <h3>Criar Robô</h3>
+        <label>Nome do Robô:</label>
+        <input type="text" id="eventTitle">
+        <label>Hora Inicial:</label>
+        <input type="time" id="startTime">
+        <label>Hora Final:</label>
+        <input type="time" id="endTime">
+        <label><input type="checkbox" id="repeatWeekdays"> Repetir nos dias úteis</label>
+        <label><input type="checkbox" id="repeatMonthly"> Repetir mensalmente</label>
+        <button onclick="saveEvent()">Salvar</button>
+        <button onclick="closeModal()">Cancelar</button>
+    </div>
+
+    <!-- Modal de Editar Evento -->
+    <div id="editEventModal">
+        <h3>Editar Robô</h3>
+        <label>Nome do Robô:</label>
+        <input type="text" id="editEventTitle">
+        <label>Hora Inicial:</label>
+        <input type="time" id="editStartTime">
+        <label>Hora Final:</label>
+        <input type="time" id="editEndTime">
+        <label><input type="checkbox" id="editRepeatWeekdays"> Repetir nos dias úteis</label>
+        <label><input type="checkbox" id="editRepeatMonthly"> Repetir mensalmente</label>
+        <button onclick="updateEvent()">Atualizar</button>
+        <button onclick="deleteEvent()">Excluir</button>
+        <button onclick="deleteAllEvents()">Excluir Todos</button>
+        <button onclick="closeEditModal()">Cancelar</button>
+    </div>
+
+    <div id="calendar"></div>
+
+    <script>
+        var selectedEventId = null;
+        var selectedDate = null;
+        var eventColors = {};  // Armazena cores fixas para eventos com mesmo nome
+
+        function getRandomColor() {
+            let color;
+            do {
+                color = '#' + Math.floor(Math.random() * 16777215).toString(16);
+            } while (isLightColor(color));  // Garante que a cor não seja muito clara
+            return color;
+        }
+
+        function isLightColor(hex) {
+            if (hex.length !== 7) return true;
+            const r = parseInt(hex.substr(1, 2), 16);
+            const g = parseInt(hex.substr(3, 2), 16);
+            const b = parseInt(hex.substr(5, 2), 16);
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            return brightness > 180;  // Evita tons muito claros
+        }
+
+        function openModal(date) {
+            selectedDate = date;
+            document.getElementById("eventModal").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById("eventModal").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+        }
+
+        function openEditModal(event) {
+            selectedEventId = event.id;
+            selectedDate = event.startStr.slice(0, 10);
+            document.getElementById("editEventTitle").value = event.title;
+            document.getElementById("editStartTime").value = event.startStr.slice(11, 16);
+            document.getElementById("editEndTime").value = event.endStr.slice(11, 16);
+            document.getElementById("editRepeatWeekdays").checked = event.extendedProps.repeatWeekdays;
+            document.getElementById("editRepeatMonthly").checked = event.extendedProps.repeatMonthly;
+            document.getElementById("editEventModal").style.display = "block";
+        }
+
+        function closeEditModal() {
+            document.getElementById("editEventModal").style.display = "none";
+        }
+
+        function saveEvent() {
+            var title = document.getElementById("eventTitle").value;
+            var startTime = document.getElementById("startTime").value;
+            var endTime = document.getElementById("endTime").value;
+            var repeatWeekdays = document.getElementById("repeatWeekdays").checked ? 1 : 0;
+            var repeatMonthly = document.getElementById("repeatMonthly").checked ? 1 : 0;
+
+            fetch('/add_event', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: title,
+                    start: selectedDate + "T" + startTime + ":00",
+                    end: selectedDate + "T" + endTime + ":00",
+                    repeatWeekdays: repeatWeekdays,
+                    repeatMonthly: repeatMonthly
+                })
+            }).then(() => { closeModal(); location.reload(); })
+            .catch(error => console.error("Erro:", error));
+        }
+
+        function updateEvent() {
+            fetch('/update_event', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: selectedEventId,
+                    title: document.getElementById("editEventTitle").value,
+                    start: selectedDate + "T" + document.getElementById("editStartTime").value + ":00",
+                    end: selectedDate + "T" + document.getElementById("editEndTime").value + ":00",
+                    repeatWeekdays: document.getElementById("editRepeatWeekdays").checked ? 1 : 0,
+                    repeatMonthly: document.getElementById("editRepeatMonthly").checked ? 1 : 0
+                })
+            }).then(() => { closeEditModal(); location.reload(); })
+            .catch(error => console.error("Erro ao atualizar Robô:", error));
+        }
+
+        function deleteEvent() {
+            fetch('/delete_event', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: selectedEventId })
+            }).then(() => { closeEditModal(); location.reload(); })
+            .catch(error => console.error("Erro ao excluir Robô:", error));
+        }
+
+        function deleteAllEvents() {
+            var title = document.getElementById("editEventTitle").value;
+            fetch('/delete_all_events', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: title })
+            }).then(() => { closeEditModal(); location.reload(); })
+            .catch(error => console.error("Erro ao excluir todos os Robôs:", error));
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var calendarEl = document.getElementById("calendar");
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: "dayGridMonth",
+                selectable: true,
+                select: function(info) { openModal(info.startStr); },
+                events: "/get_events",
+                eventClick: function(info) { openEditModal(info.event); },
+                eventDidMount: function(info) {
+                    const title = info.event.title;
+                    if (!eventColors[title]) {
+                        eventColors[title] = getRandomColor();  // Atribui uma cor fixa ao evento
+                    }
+                    info.el.style.backgroundColor = eventColors[title];
+                    info.el.style.color = 'white';
+                    info.el.querySelector('.fc-event-title').innerHTML = 
+                        info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + " - " + 
+                        info.event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + 
+                        " " + info.event.title;
+                }
+            });
+            calendar.render();
+        });
+    </script>
+</body>
+</html>
