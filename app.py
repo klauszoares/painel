@@ -8,13 +8,9 @@ import random
 
 app = Flask(__name__)
 
-# Criar conexão com o banco
-def get_db_connection():
-    conn = sqlite3.connect('events.db', check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///events.db")
 
-conn = get_db_connection()
+conn = sqlite3.connect("events.db", check_same_thread=False)
 cursor = conn.cursor()
 
 # Criar tabela corrigida com a coluna "color"
