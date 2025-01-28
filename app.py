@@ -9,6 +9,11 @@ import os
 
 app = Flask(__name__)
 
+@app.route('/ping')
+def ping():
+    return "pong", 200
+
+
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///events.db")
 
 conn = sqlite3.connect("events.db", check_same_thread=False)
