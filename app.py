@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import hashlib
 import random
 import os
+import requests
+import subprocess
 
 
 
@@ -14,8 +16,15 @@ def ping():
     return "pong", 200
 
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///events.db")
+GITHUB_DB_URL = "https://raw.githubusercontent.com/klauszoares/painel/main/events.db"
 
+# Verifica se o banco existe, se não, baixa do GitHub
+if not os.path.exists("events.db"):
+    response = requests.get(GITHUB_DB_URL)
+    with open("events.db", "wb") as f:
+        f.write(response.content)
+
+# Conectar ao SQLite
 conn = sqlite3.connect("events.db", check_same_thread=False)
 cursor = conn.cursor()
 
@@ -72,6 +81,11 @@ def generate_fixed_color(event_name):
             event_colors[event_name] = color  # Salva a cor
             return color
 
+def save_db_to_github():
+    subprocess.run(["git", "add", "events.db"])
+    subprocess.run(["git", "commit", "-m", "Atualizando banco de dados"])
+    subprocess.run(["git", "push", "origin", "main"])
+
 @app.route('/add_event', methods=['POST'])
 def add_event():
     data = request.get_json()
@@ -115,10 +129,15 @@ def add_event():
                     (title, new_date_str + start_time[10:], new_date_str + end_time[10:], repeat_weekdays, repeat_monthly, color))
 
         conn.commit()
+
+        # Salvar banco de dados no GitHub após cada modificação**
+        save_db_to_github()
+
         return jsonify({"message": "Robô(s) adicionado(s) com sucesso!"})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 
