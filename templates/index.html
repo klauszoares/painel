@@ -89,6 +89,7 @@
         <label>Hora Final:</label>
         <input type="time" id="endTime">
         <label><input type="checkbox" id="repeatWeekdays"> Repetir nos dias úteis</label>
+		<label><input type="checkbox" id="repeatWeekly"> Repetir semanalmente</label>
         <label><input type="checkbox" id="repeatMonthly"> Repetir mensalmente</label>
         <button onclick="saveEvent()">Salvar</button>
         <button onclick="closeModal()">Cancelar</button>
@@ -104,6 +105,7 @@
         <label>Hora Final:</label>
         <input type="time" id="editEndTime">
         <label><input type="checkbox" id="editRepeatWeekdays"> Repetir nos dias úteis</label>
+		<label><input type="checkbox" id="editRepeatWeekly"> Repetir semanalmente</label>
         <label><input type="checkbox" id="editRepeatMonthly"> Repetir mensalmente</label>
         <button onclick="updateEvent()">Atualizar</button>
         <button onclick="deleteEvent()">Excluir</button>
@@ -153,6 +155,7 @@
             document.getElementById("editStartTime").value = event.startStr.slice(11, 16);
             document.getElementById("editEndTime").value = event.endStr.slice(11, 16);
             document.getElementById("editRepeatWeekdays").checked = event.extendedProps.repeatWeekdays;
+			document.getElementById("editRepeatWeekly").checked = event.extendedProps.repeatWeekly;
             document.getElementById("editRepeatMonthly").checked = event.extendedProps.repeatMonthly;
             document.getElementById("editEventModal").style.display = "block";
         }
@@ -166,6 +169,7 @@
             var startTime = document.getElementById("startTime").value;
             var endTime = document.getElementById("endTime").value;
             var repeatWeekdays = document.getElementById("repeatWeekdays").checked ? 1 : 0;
+			var repeatWeekly = document.getElementById("repeatWeekly").checked ? 1 : 0;
             var repeatMonthly = document.getElementById("repeatMonthly").checked ? 1 : 0;
 
             fetch('/add_event', {
@@ -176,6 +180,7 @@
                     start: selectedDate + "T" + startTime + ":00",
                     end: selectedDate + "T" + endTime + ":00",
                     repeatWeekdays: repeatWeekdays,
+					repeatWeekly: repeatWeekly,
                     repeatMonthly: repeatMonthly
                 })
             }).then(() => { closeModal(); location.reload(); })
@@ -192,6 +197,7 @@
                     start: selectedDate + "T" + document.getElementById("editStartTime").value + ":00",
                     end: selectedDate + "T" + document.getElementById("editEndTime").value + ":00",
                     repeatWeekdays: document.getElementById("editRepeatWeekdays").checked ? 1 : 0,
+					repeatWeekly: document.getElementById("editRepeatWeekly").checked ? 1 : 0,
                     repeatMonthly: document.getElementById("editRepeatMonthly").checked ? 1 : 0
                 })
             }).then(() => { closeEditModal(); location.reload(); })
@@ -243,4 +249,3 @@
     </script>
 </body>
 </html>
-
