@@ -11,22 +11,35 @@ import subprocess
 
 app = Flask(__name__)
 
-@app.route('/ping')
-def ping():
-    return "pong", 200
+# Configuração do repositório do GitHub
+GITHUB_USERNAME = "klauszoares"
+GITHUB_REPO = "painel"
+GITHUB_BRANCH = "main"
+GITHUB_TOKEN = "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"
 
+# URL do banco de dados no GitHub
+GITHUB_DB_URL = f"https://raw.githubusercontent.com/{GITHUB_USERNAME}/{GITHUB_REPO}/{GITHUB_BRANCH}/events.db"
 
-GITHUB_DB_URL = "https://raw.githubusercontent.com/klauszoares/painel/main/events.db"
-
-# Verifica se o banco existe, se não, baixa do GitHub
+# Se o banco não existir localmente, baixar do GitHub
 if not os.path.exists("events.db"):
     response = requests.get(GITHUB_DB_URL)
-    with open("events.db", "wb") as f:
-        f.write(response.content)
+    if response.status_code == 200:
+        with open("events.db", "wb") as f:
+            f.write(response.content)
+    else:
+        print("Banco de dados não encontrado no GitHub. Criando um novo.")
 
 # Conectar ao SQLite
 conn = sqlite3.connect("events.db", check_same_thread=False)
 cursor = conn.cursor()
+
+
+
+
+@app.route('/ping')
+def ping():
+    return "pong", 200
+
 
 # Criar tabela corrigida com nova coluna "repeat_weekly"
 def recreate_table():
@@ -43,6 +56,15 @@ def recreate_table():
     conn.commit()
 
 recreate_table()
+
+# Função para salvar o banco de dados no GitHub
+def save_db_to_github():
+    try:
+        subprocess.run(["git", "add", "events.db"])
+        subprocess.run(["git", "commit", "-m", "Atualizando banco de dados"])
+        subprocess.run(["git", "push", "origin", "main"])
+    except Exception as e:
+        print(f"Erro ao salvar no GitHub: {e}")
 
 @app.route('/')
 def index():
