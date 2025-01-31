@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 import sqlite3
 from datetime import datetime, timedelta
 import hashlib
@@ -273,6 +273,10 @@ def delete_all_events():
     cursor.execute("DELETE FROM events WHERE title = ?", (data['title'],))
     conn.commit()
     return jsonify({"message": "Todos os Robôs com esse título foram deletados!"})
+
+@app.route('/download_db')
+def download_db():
+    return send_file("events.db", as_attachment=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
