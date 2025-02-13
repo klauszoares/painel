@@ -165,27 +165,28 @@
         }
 
         function saveEvent() {
-            var title = document.getElementById("eventTitle").value;
-            var startTime = document.getElementById("startTime").value;
-            var endTime = document.getElementById("endTime").value;
-            var repeatWeekdays = document.getElementById("repeatWeekdays").checked ? 1 : 0;
-			var repeatWeekly = document.getElementById("repeatWeekly").checked ? 1 : 0;
-            var repeatMonthly = document.getElementById("repeatMonthly").checked ? 1 : 0;
+			var title = document.getElementById("eventTitle").value;
+			var startTime = document.getElementById("startTime").value;
+			var endTime = document.getElementById("endTime").value;
+			var repeatWeekdays = document.getElementById("repeatWeekdays").checked ? 1 : 0;
+			var repeatMonthly = document.getElementById("repeatMonthly").checked ? 1 : 0;
+			var repeatWeekly = document.getElementById("repeatWeekly").checked ? 1 : 0; // <-- Nova Flag
 
-            fetch('/add_event', {
-                method: 'POST',
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    title: title,
-                    start: selectedDate + "T" + startTime + ":00",
-                    end: selectedDate + "T" + endTime + ":00",
-                    repeatWeekdays: repeatWeekdays,
-					repeatWeekly: repeatWeekly,
-                    repeatMonthly: repeatMonthly
-                })
-            }).then(() => { closeModal(); location.reload(); })
-            .catch(error => console.error("Erro:", error));
-        }
+			fetch('/add_event', {
+				method: 'POST',
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					title: title,
+					start: selectedDate + "T" + startTime + ":00",
+					end: selectedDate + "T" + endTime + ":00",
+					repeatWeekdays: repeatWeekdays,
+					repeatMonthly: repeatMonthly,
+					repeatWeekly: repeatWeekly  // <-- Nova Flag
+				})
+			}).then(() => { closeModal(); location.reload(); })
+			.catch(error => console.error("Erro:", error));
+		}
+
 
         function updateEvent() {
             fetch('/update_event', {
