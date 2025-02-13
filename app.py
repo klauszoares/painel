@@ -70,52 +70,62 @@ def save_db_to_github():
 def index():
     return render_template('index.html')
 
+
 @app.route('/get_events')
 def get_events():
     cursor.execute("SELECT id, title, start, end, repeat_weekdays, repeat_monthly, repeat_weekly, color FROM events")
-    events = [{"id": row[0], "title": row[1], "start": row[2], "end": row[3],
-               "repeatWeekdays": bool(row[4]), "repeatMonthly": bool(row[5]),
-               "repeatWeekly": bool(row[6]), "color": row[7]} for row in cursor.fetchall()]
+    events = []
+
+    for row in cursor.fetchall():
+        event = {
+            "id": row[0],
+            "title": row[1],
+            "start": row[2],
+            "end": row[3],
+            "repeatWeekdays": bool(row[4]),
+            "repeatMonthly": bool(row[5]),
+            "repeatWeekly": bool(row[6]),
+            "color": row[7]
+        }
+
+        events.append(event)
+
+        # Criar eventos dinâmicos sem armazenar no banco
+        original_date = datetime.strptime(row[2][:10], "%Y-%m-%d")
+
+        for i in range(1, 365):
+            new_date = original_date + timedelta(days=i)
+            new_date_str = new_date.strftime("%Y-%m-%d")
+
+            if event["repeatWeekdays"] and new_date.weekday() < 5:
+                events.append({
+                    "id": f"{row[0]}-weekdays-{i}",
+                    "title": event["title"],
+                    "start": new_date_str + row[2][10:],
+                    "end": new_date_str + row[3][10:],
+                    "color": event["color"]
+                })
+
+            if event["repeatMonthly"] and new_date.day == original_date.day:
+                events.append({
+                    "id": f"{row[0]}-monthly-{i}",
+                    "title": event["title"],
+                    "start": new_date_str + row[2][10:],
+                    "end": new_date_str + row[3][10:],
+                    "color": event["color"]
+                })
+
+            if event["repeatWeekly"] and new_date.weekday() == original_date.weekday():
+                events.append({
+                    "id": f"{row[0]}-weekly-{i}",
+                    "title": event["title"],
+                    "start": new_date_str + row[2][10:],
+                    "end": new_date_str + row[3][10:],
+                    "color": event["color"]
+                })
+
     return jsonify(events)
 
-# Adicionar a coluna 'repeat_weekly' se não existir
-cursor.execute("PRAGMA table_info(events)")
-columns = [column[1] for column in cursor.fetchall()]
-if 'repeat_weekly' not in columns:
-    cursor.execute("ALTER TABLE events ADD COLUMN repeat_weekly INTEGER DEFAULT 0")
-    conn.commit()
-
-# Adicionar a coluna 'color' à tabela 'events' se não existir
-cursor.execute("PRAGMA table_info(events)")
-columns = [column[1] for column in cursor.fetchall()]
-if 'color' not in columns:
-    cursor.execute("ALTER TABLE events ADD COLUMN color TEXT")
-    conn.commit()
-
-event_colors = {}  # Dicionário global para armazenar cores fixas dos eventos
-
-
-def generate_fixed_color(event_name):
-    """ Gera uma cor fixa baseada no nome do evento e evita tons muito claros """
-    if event_name in event_colors:
-        return event_colors[event_name]  # Retorna a cor salva
-
-    hash_code = int(hashlib.md5(event_name.encode()).hexdigest(), 16)
-    random.seed(hash_code)
-
-    while True:
-        color = "#{:06x}".format(random.randint(0x000000, 0xFFFFFF))
-
-        # Evitar cores muito claras (branco, cinza claro, amarelo claro)
-        if not (color.lower() in ["#ffffff", "#f8f8f8", "#f0f0f0", "#e0e0e0", "#d0d0d0", "#c0c0c0", "#ffffe0",
-                                  "#f5f5dc", "#ffe4b5"]):
-            event_colors[event_name] = color  # Salva a cor
-            return color
-
-def save_db_to_github():
-    subprocess.run(["git", "add", "events.db"])
-    subprocess.run(["git", "commit", "-m", "Atualizando banco de dados"])
-    subprocess.run(["git", "push", "origin", "main"])
 
 @app.route('/add_event', methods=['POST'])
 def add_event():
