@@ -104,25 +104,35 @@ def generate_fixed_color(event_name):
             event_colors[event_name] = color  # Salva a cor
             return color
 
+
 @app.route('/get_events')
 def get_events():
-    cursor.execute("SELECT id, title, start, end, repeat_weekdays, repeat_monthly, repeat_weekly, color FROM events")
-    events = []
+    try:
+        # Captura o mês atual e o próximo
+        today = datetime.today()
+        first_day_current_month = today.replace(day=1).strftime("%Y-%m-%d")
+        first_day_next_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1).strftime("%Y-%m-%d")
 
-    for row in cursor.fetchall():
-        event = {
-            "id": row[0],
-            "title": row[1],
-            "start": row[2],
-            "end": row[3],
-            "repeatWeekdays": bool(row[4]),
-            "repeatMonthly": bool(row[5]),
-            "repeatWeekly": bool(row[6]),
-            "color": row[7]
-        }
-        events.append(event)
+        cursor.execute("SELECT id, title, start, end, repeat_weekdays, repeat_monthly, repeat_weekly, color FROM events WHERE start BETWEEN ? AND ?",
+                       (first_day_current_month, first_day_next_month))
 
-    return jsonify(events)
+        events = []
+        for row in cursor.fetchall():
+            event = {
+                "id": row[0],
+                "title": row[1],
+                "start": row[2],
+                "end": row[3],
+                "repeatWeekdays": bool(row[4]),
+                "repeatMonthly": bool(row[5]),
+                "repeatWeekly": bool(row[6]),
+                "color": row[7]
+            }
+            events.append(event)
+
+        return jsonify(events)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 
