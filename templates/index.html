@@ -238,16 +238,18 @@
 								return {
 									id: event.id,
 									title: event.title,
-									start: event.start.includes('T') ? event.start : event.start + "T00:00:00",
-									end: event.end.includes('T') ? event.end : event.end + "T23:59:59",
+									start: event.start.includes("T") ? event.start : event.start + "T00:00:00",
+									end: event.end.includes("T") ? event.end : event.end + "T23:59:59",
 									color: event.color
 								};
 							});
 							successCallback(events);
 						})
-						.catch(error => failureCallback(error));
+						.catch(error => {
+							console.error("Erro ao carregar eventos:", error);
+							failureCallback(error);
+						});
 				},
-
                 eventClick: function(info) { openEditModal(info.event); },
                 eventDidMount: function(info) {
                     const title = info.event.title;
